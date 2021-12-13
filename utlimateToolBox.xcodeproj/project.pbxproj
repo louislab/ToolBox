@@ -11,6 +11,7 @@
 		BFADE3DA276606D800E2602F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFADE3D9276606D800E2602F /* ContentView.swift */; };
 		BFADE3DC276606DA00E2602F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFADE3DB276606DA00E2602F /* Assets.xcassets */; };
 		BFADE3DF276606DA00E2602F /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFADE3DE276606DA00E2602F /* Preview Assets.xcassets */; };
+		BFADE3E627661C9700E2602F /* OpenAIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFADE3E527661C9700E2602F /* OpenAIView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -19,6 +20,8 @@
 		BFADE3D9276606D800E2602F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		BFADE3DB276606DA00E2602F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BFADE3DE276606DA00E2602F /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		BFADE3E527661C9700E2602F /* OpenAIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIView.swift; sourceTree = "<group>"; };
+		BFADE3FC2767287800E2602F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,10 +54,12 @@
 		BFADE3D6276606D800E2602F /* utlimateToolBox */ = {
 			isa = PBXGroup;
 			children = (
+				BFADE3FC2767287800E2602F /* Info.plist */,
 				BFADE3D7276606D800E2602F /* utlimateToolBoxApp.swift */,
 				BFADE3D9276606D800E2602F /* ContentView.swift */,
 				BFADE3DB276606DA00E2602F /* Assets.xcassets */,
 				BFADE3DD276606DA00E2602F /* Preview Content */,
+				BFADE3EA2766348100E2602F /* openAI */,
 			);
 			path = utlimateToolBox;
 			sourceTree = "<group>";
@@ -65,6 +70,14 @@
 				BFADE3DE276606DA00E2602F /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		BFADE3EA2766348100E2602F /* openAI */ = {
+			isa = PBXGroup;
+			children = (
+				BFADE3E527661C9700E2602F /* OpenAIView.swift */,
+			);
+			path = openAI;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -83,6 +96,8 @@
 			dependencies = (
 			);
 			name = utlimateToolBox;
+			packageProductDependencies = (
+			);
 			productName = utlimateToolBox;
 			productReference = BFADE3D4276606D800E2602F /* utlimateToolBox.app */;
 			productType = "com.apple.product-type.application";
@@ -111,6 +126,8 @@
 				Base,
 			);
 			mainGroup = BFADE3CB276606D800E2602F;
+			packageReferences = (
+			);
 			productRefGroup = BFADE3D5276606D800E2602F /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -139,6 +156,7 @@
 			files = (
 				BFADE3DA276606D800E2602F /* ContentView.swift in Sources */,
 				BFADE3D8276606D800E2602F /* utlimateToolBoxApp.swift in Sources */,
+				BFADE3E627661C9700E2602F /* OpenAIView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -269,8 +287,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"utlimateToolBox/Preview Content\"";
+				DEVELOPMENT_TEAM = R5222D2L6Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = utlimateToolBox/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -297,8 +317,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"utlimateToolBox/Preview Content\"";
+				DEVELOPMENT_TEAM = R5222D2L6Y;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = utlimateToolBox/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

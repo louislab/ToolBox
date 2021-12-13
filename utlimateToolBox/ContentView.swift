@@ -8,9 +8,21 @@
 import SwiftUI
 
 struct ContentView: View {
+    
     var body: some View {
-        Text("Hello, world!")
-            .padding()
+        NavigationView {
+            List {
+                NavigationLink(destination: OpenAIView(),
+                    label: {
+                    Image("OpenAI")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                })
+            }
+            .navigationTitle("ToolBox")
+            .navigationBarTitleDisplayMode(.large)
+        }
+        .preferredColorScheme(.light) // now only support light mode
     }
 }
 
