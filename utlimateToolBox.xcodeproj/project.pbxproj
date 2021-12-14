@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BF80EFD72768DAAF008C821B /* RobotoMono-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BF80EFD62768DAAF008C821B /* RobotoMono-Light.ttf */; };
+		BF80EFDA2768F043008C821B /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = BF80EFD92768F043008C821B /* Alamofire */; };
 		BFADE3D8276606D800E2602F /* utlimateToolBoxApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFADE3D7276606D800E2602F /* utlimateToolBoxApp.swift */; };
 		BFADE3DA276606D800E2602F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFADE3D9276606D800E2602F /* ContentView.swift */; };
 		BFADE3DC276606DA00E2602F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFADE3DB276606DA00E2602F /* Assets.xcassets */; };
@@ -15,6 +17,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		BF80EFD62768DAAF008C821B /* RobotoMono-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "RobotoMono-Light.ttf"; sourceTree = "<group>"; };
 		BFADE3D4276606D800E2602F /* utlimateToolBox.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = utlimateToolBox.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BFADE3D7276606D800E2602F /* utlimateToolBoxApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = utlimateToolBoxApp.swift; sourceTree = "<group>"; };
 		BFADE3D9276606D800E2602F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -29,12 +32,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BF80EFDA2768F043008C821B /* Alamofire in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		BF80EFD52768DA91008C821B /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				BF80EFD62768DAAF008C821B /* RobotoMono-Light.ttf */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		BFADE3CB276606D800E2602F = {
 			isa = PBXGroup;
 			children = (
@@ -54,6 +66,7 @@
 		BFADE3D6276606D800E2602F /* utlimateToolBox */ = {
 			isa = PBXGroup;
 			children = (
+				BF80EFD52768DA91008C821B /* Resources */,
 				BFADE3FC2767287800E2602F /* Info.plist */,
 				BFADE3D7276606D800E2602F /* utlimateToolBoxApp.swift */,
 				BFADE3D9276606D800E2602F /* ContentView.swift */,
@@ -97,6 +110,7 @@
 			);
 			name = utlimateToolBox;
 			packageProductDependencies = (
+				BF80EFD92768F043008C821B /* Alamofire */,
 			);
 			productName = utlimateToolBox;
 			productReference = BFADE3D4276606D800E2602F /* utlimateToolBox.app */;
@@ -127,6 +141,7 @@
 			);
 			mainGroup = BFADE3CB276606D800E2602F;
 			packageReferences = (
+				BF80EFD82768F043008C821B /* XCRemoteSwiftPackageReference "Alamofire" */,
 			);
 			productRefGroup = BFADE3D5276606D800E2602F /* Products */;
 			projectDirPath = "";
@@ -142,6 +157,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BF80EFD72768DAAF008C821B /* RobotoMono-Light.ttf in Resources */,
 				BFADE3DF276606DA00E2602F /* Preview Assets.xcassets in Resources */,
 				BFADE3DC276606DA00E2602F /* Assets.xcassets in Resources */,
 			);
@@ -361,6 +377,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BF80EFD82768F043008C821B /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BF80EFD92768F043008C821B /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BF80EFD82768F043008C821B /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BFADE3CC276606D800E2602F /* Project object */;
 }

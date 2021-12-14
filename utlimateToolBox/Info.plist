@@ -10,5 +10,9 @@
 			<string></string>
 		</dict>
 	</dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>RobotoMono-Light.ttf</string>
+	</array>
 </dict>
 </plist>
