@@ -47,7 +47,6 @@ struct OpenAIView: View {
 // MARK: - Completion view
 
 struct CompletionsView: View {
-    @State var inited = false
     @StateObject var settings = Settings()
     
     func fetchContent() {
@@ -133,30 +132,40 @@ struct CompletionsView: View {
                 .padding()
                 .modifier(InnerShadowModifier())
                 .padding([.leading, .bottom, .trailing])
-                .onAppear {
-                    if inited == false {
-                        settings.initSettings()
-                        inited = true
-                    }
-                }
             HStack {
                 Spacer()
                 Button(action: {
+                    if !settings.reverseCard.isEmpty {
+                        settings.content = settings.reverseCard.removeLast()
+                    }
+                },
+                       label: {
+                    Image(systemName: "arrow.uturn.backward")
+                        .aspectRatio(contentMode: .fit)
+                })
+                    .padding()
+                    .buttonStyle(MonoStyle())
+                Spacer()
+                Button(action: {
+                    settings.reverseCard.append(settings.content)
                     settings.content = ""
-                }) {
+                },
+                       label: {
                     Text("Clear")
                         .fontWeight(.bold)
-                }
+                })
                     .buttonStyle(MonoStyle())
                 Spacer()
                 Button(action: {
                     settings.prompt = settings.content
+                    settings.reverseCard.append(settings.content)
                     fetchContent()
                     hideKeyboard()
-                }) {
+                },
+                       label: {
                     Text("Generate")
                         .fontWeight(.bold)
-                }
+                })
                     .buttonStyle(MonoStyle())
                 Spacer()
             }
@@ -259,12 +268,13 @@ struct CompletionsView_menu: View {
                     settings.content = "Once upon a time"
                     settings.engine = "davinci"
                     settings.prompt = ""
-                    settings.max_tokens = 10
-                    settings.temperature = 1
-                    settings.top_p = 1
+                    settings.max_tokens = 20
+                    settings.temperature = 1.0
+                    settings.top_p = 1.0
                     settings.n = 1
                     settings.stream = false
                     settings.stop = "\\n"
+                    settings.reverseCard = []
                 },
                        label: {
                     Text("Reset")
@@ -286,15 +296,16 @@ struct CompletionsView_menu: View {
 // MARK: - Completion settings class
 
 class Settings: ObservableObject {
-    @Published var content = ""
-    @Published var engine = ""
+    @Published var content = "Once upon a time"
+    @Published var engine = "davinci"
     @Published var prompt = ""
-    @Published var max_tokens = 1
+    @Published var max_tokens = 20
     @Published var temperature = 1.0
     @Published var top_p = 1.0
     @Published var n = 1
     @Published var stream = false
-    @Published var stop = ""
+    @Published var stop = "\\n"
+    @Published var reverseCard: [String] = [] // a stack for undo movement
     
     var max_tokens_double: Binding<Double>{
         Binding<Double>(get: {
@@ -319,7 +330,7 @@ class Settings: ObservableObject {
         var stop: String
     }
     
-    func initSettings() {
+    init() {
         
         let reader = FilesManager()
         var rdata: Data
@@ -327,15 +338,6 @@ class Settings: ObservableObject {
             try rdata = reader.read(fileNamed: "completion_model_settings.json")
         } catch {
             print(error)
-            self.content = "Once upon a time"
-            self.engine = "davinci"
-            self.prompt = ""
-            self.max_tokens = 10
-            self.temperature = 1
-            self.top_p = 1
-            self.n = 1
-            self.stream = false
-            self.stop = "\\n"
             print("Data loaded from template.")
             return
         }
