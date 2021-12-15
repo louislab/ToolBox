@@ -8,13 +8,12 @@
 import SwiftUI
 import Alamofire
 
-let apiKey: String = "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"
-
 struct OpenAIView: View {
+    @StateObject fileprivate var api = OPENAI()
     
     var body: some View {
         List {
-            NavigationLink(destination: CompletionsView(),
+            NavigationLink(destination: CompletionsView().environmentObject(api),
                 label: {
                 Text("Completions")
             })
@@ -38,22 +37,90 @@ struct OpenAIView: View {
                 label: {
                 Text("Content Filter")
             })
+            NavigationLink(destination: SettingsView().environmentObject(api),
+                label: {
+                Text("Settings")
+            })
         }
         .navigationTitle("Open AI")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
 
+// MARK: - Settings View
+
+struct SettingsView: View {
+    @State private var showingAlert = false
+    @State private var alertMsg = ""
+    @EnvironmentObject fileprivate var api: OPENAI
+    
+    var body: some View {
+        ZStack {
+            Color(UIColor.systemBackground)
+                .edgesIgnoringSafeArea(.all)
+            VStack() {
+                Spacer()
+                VStack() {
+                    Text("OPENAI API Key")
+                        .padding([.leading, .top, .trailing])
+                    TextField("", text: $api.KEY)
+                        .padding([.leading, .bottom, .trailing])
+                        .multilineTextAlignment(.center)
+                        .textFieldStyle(.roundedBorder)
+                }
+                Spacer()
+                Button(action: {
+                    let r = FilesManager()
+                    do {
+                        try r.remove(fileNamed: "OPENAI")
+                        showingAlert = true
+                        alertMsg = "Settings erased successfully."
+                    } catch {
+                        showingAlert = true
+                        alertMsg = "Settings is empty."
+                    }
+                    api.KEY = ""
+                }, label: {
+                    Text("Erase all OPENAI settings")
+                        .foregroundColor(Color.red)
+                })
+                    .padding(.bottom, 50.0)
+            }
+            .alert(isPresented: $showingAlert) {
+                Alert(title: Text(alertMsg), dismissButton: .default(Text("Dismiss")))
+            }
+        }
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
+        .onDisappear(perform: {
+            api.config()
+        })
+        .onTapGesture {
+            hideKeyboard()
+        }
+    }
+}
+
 // MARK: - Completion view
 
 struct CompletionsView: View {
-    @StateObject var settings = Settings()
+    @StateObject fileprivate var settings = CompletionSettings()
+    @EnvironmentObject fileprivate var api: OPENAI
+    @State private var showingAlert = false
     
-    func fetchContent() {
+    func fetchContent() throws {
+        
+        enum Error: Swift.Error {
+            case noAPIKeyDetected
+        }
+        
+        if api.KEY.isEmpty {
+            throw Error.noAPIKeyDetected
+        }
         
         let headers: HTTPHeaders = [
             "Content-Type": "application/json",
-            "Authorization": "Bearer \(apiKey)"
+            "Authorization": "Bearer \(api.KEY)"
         ]
         
         let parameters: Parameters = [
@@ -78,14 +145,14 @@ struct CompletionsView: View {
             struct Choice: Decodable {
                 let text: String?
                 let index: Int?
-                let logprobs: JSONNull?
+                let logprobs: Double?
                 let finish_reason: String?
             }
             
             struct Err: Decodable {
-                let code: JSONNull?
+                let code: String?
                 let message: String?
-                let param: JSONNull?
+                let param: String?
                 let type: String?
             }
         }
@@ -159,7 +226,11 @@ struct CompletionsView: View {
                 Button(action: {
                     settings.prompt = settings.content
                     settings.reverseCard.append(settings.content)
-                    fetchContent()
+                    do {
+                        try fetchContent()
+                    } catch {
+                        showingAlert = true
+                    }
                     hideKeyboard()
                 },
                        label: {
@@ -169,6 +240,9 @@ struct CompletionsView: View {
                     .buttonStyle(MonoStyle())
                 Spacer()
             }
+        }
+        .alert(isPresented: $showingAlert) {
+            Alert(title: Text("API Key not found."), message: Text("Please config your API Key in settings"), dismissButton: .default(Text("Dismiss")))
         }
         .navigationTitle("Completions")
         .navigationBarTitleDisplayMode(.inline)
@@ -181,7 +255,7 @@ struct CompletionsView: View {
 // MARK: - Completion view (menu)
 
 struct CompletionsView_menu: View {
-    @EnvironmentObject var settings: Settings
+    @EnvironmentObject fileprivate var settings: CompletionSettings
 
     let engines = ["davinci", "curie", "babbage", "ada", "davinci-instruct-beta-v3", "curie-instruct-beta-v2", "babbage-instruct-beta", "ada-instruct-beta", "davinci-codex", "cushman-codex"]
     
@@ -295,17 +369,17 @@ struct CompletionsView_menu: View {
 
 // MARK: - Completion settings class
 
-class Settings: ObservableObject {
-    @Published var content = "Once upon a time"
-    @Published var engine = "davinci"
-    @Published var prompt = ""
-    @Published var max_tokens = 20
-    @Published var temperature = 1.0
-    @Published var top_p = 1.0
-    @Published var n = 1
-    @Published var stream = false
-    @Published var stop = "\\n"
-    @Published var reverseCard: [String] = [] // a stack for undo movement
+fileprivate class CompletionSettings: ObservableObject {
+    @Published var content: String
+    @Published var engine: String
+    @Published var prompt: String
+    @Published var max_tokens: Int
+    @Published var temperature: Double
+    @Published var top_p: Double
+    @Published var n: Int
+    @Published var stream: Bool
+    @Published var stop: String
+    @Published var reverseCard: [String] // a stack for undo movement
     
     var max_tokens_double: Binding<Double>{
         Binding<Double>(get: {
@@ -335,9 +409,19 @@ class Settings: ObservableObject {
         let reader = FilesManager()
         var rdata: Data
         do {
-            try rdata = reader.read(fileNamed: "completion_model_settings.json")
+            try rdata = reader.read(fileNamed: "OPENAI/completion_model_settings.json")
         } catch {
             print(error)
+            self.content = "Once upon a time"
+            self.engine = "davinci"
+            self.prompt = ""
+            self.max_tokens = 20
+            self.temperature = 1.0
+            self.top_p = 1.0
+            self.n = 1
+            self.stream = false
+            self.stop = "\\n"
+            self.reverseCard = []
             print("Data loaded from template.")
             return
         }
@@ -353,6 +437,7 @@ class Settings: ObservableObject {
         self.n = data.n
         self.stream = data.stream
         self.stop = data.stop
+        self.reverseCard = []
         
     }
     
@@ -374,9 +459,14 @@ class Settings: ObservableObject {
         let data = try! JSONEncoder().encode(wdata)
         
         do {
-            try writer.save(fileNamed: "completion_model_settings.json", data: data)
+            try writer.save(fileNamed: "OPENAI/completion_model_settings.json", data: data)
         } catch {
-            print(error)
+            do {
+                try writer.createDir(dirPath: "OPENAI")
+                try writer.save(fileNamed: "OPENAI/completion_model_settings.json", data: data)
+            } catch {
+                print(error)
+            }
         }
         
     }
@@ -477,34 +567,43 @@ struct InnerShadowModifier: ViewModifier {
         }
 }
 
-// MARK: - JSONNull encode/decode helper
+// MARK: - API key class
 
-class JSONNull: Codable, Hashable {
+fileprivate class OPENAI: ObservableObject {
+    @Published var KEY = ""
 
-    public static func == (lhs: JSONNull, rhs: JSONNull) -> Bool {
-        return true
-    }
+    init() {
 
-    public var hashValue: Int {
-        return 0
-    }
-
-    public func hash(into hasher: inout Hasher) {
-        // No-op
-    }
-
-    public init() {}
-
-    public required init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if !container.decodeNil() {
-            throw DecodingError.typeMismatch(JSONNull.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Wrong type for JSONNull"))
+        let reader = FilesManager()
+        var rdata: Data
+        do {
+            try rdata = reader.read(fileNamed: "OPENAI/.env")
+        } catch {
+            print(error)
+            return
         }
+        
+        let data = String(data: rdata, encoding: .utf8)!
+        self.KEY = data
+        
     }
 
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encodeNil()
+    func config() {
+
+        let writer = FilesManager()
+        let data: Data? = self.KEY.data(using: .utf8)
+
+        do {
+            try writer.save(fileNamed: "OPENAI/.env", data: data!)
+        } catch {
+            do {
+                try writer.createDir(dirPath: "OPENAI")
+                try writer.save(fileNamed: "OPENAI/.env", data: data!)
+            } catch {
+                print(error)
+            }
+        }
+
     }
 }
 
@@ -518,6 +617,8 @@ class FilesManager {
         case writtingFailed
         case fileNotExists
         case readingFailed
+        case removingFailed
+        case createDirFailed
     }
     
     // create a real fileManage
@@ -534,10 +635,23 @@ class FilesManager {
         }
         do {
             try data.write(to: url)
-            print("Data saved to local storage.")
+            print("Data saved under \(url.path)")
         } catch {
             debugPrint(error)
             throw Error.writtingFailed
+        }
+    }
+    
+    func createDir(dirPath: String) throws {
+        guard let url = makeURL(forFileNamed: dirPath) else {
+            throw Error.invalidDirectory
+        }
+        do {
+            try fileManager.createDirectory(atPath: url.path, withIntermediateDirectories: true, attributes: nil)
+            print("Directory created under \(url.path)")
+        } catch {
+            debugPrint(error)
+            throw Error.createDirFailed
         }
     }
     
@@ -555,6 +669,22 @@ class FilesManager {
         } catch {
             debugPrint(error)
             throw Error.readingFailed
+        }
+    }
+    
+    func remove(fileNamed: String) throws {
+        guard let url = makeURL(forFileNamed: fileNamed) else {
+            throw Error.invalidDirectory
+        }
+        guard fileManager.fileExists(atPath: url.path) else {
+            throw Error.fileNotExists
+        }
+        do {
+            try fileManager.removeItem(atPath: url.path)
+            print("Removed data under \(url.path)")
+        } catch {
+            debugPrint(error)
+            throw Error.removingFailed
         }
     }
     
@@ -582,6 +712,6 @@ extension View {
 
 struct OpenAIView_Previews: PreviewProvider {
     static var previews: some View {
-        CompletionsView()
+        SettingsView()
     }
 }
