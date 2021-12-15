@@ -9,7 +9,7 @@ import SwiftUI
 import Alamofire
 
 struct OpenAIView: View {
-    @StateObject fileprivate var api = OPENAI()
+    @StateObject fileprivate var api = OpenAI()
     
     var body: some View {
         List {
@@ -52,7 +52,7 @@ struct OpenAIView: View {
 struct SettingsView: View {
     @State private var showingAlert = false
     @State private var alertMsg = ""
-    @EnvironmentObject fileprivate var api: OPENAI
+    @EnvironmentObject fileprivate var api: OpenAI
     
     var body: some View {
         ZStack {
@@ -61,7 +61,7 @@ struct SettingsView: View {
             VStack() {
                 Spacer()
                 VStack() {
-                    Text("OPENAI API Key")
+                    Text("OpenAI API Key")
                         .padding([.leading, .top, .trailing])
                     TextField("", text: $api.KEY)
                         .padding([.leading, .bottom, .trailing])
@@ -72,7 +72,7 @@ struct SettingsView: View {
                 Button(action: {
                     let r = FilesManager()
                     do {
-                        try r.remove(fileNamed: "OPENAI")
+                        try r.remove(fileNamed: "OpenAI")
                         showingAlert = true
                         alertMsg = "Settings erased successfully."
                     } catch {
@@ -81,7 +81,7 @@ struct SettingsView: View {
                     }
                     api.KEY = ""
                 }, label: {
-                    Text("Erase all OPENAI settings")
+                    Text("Erase all OpenAI settings")
                         .foregroundColor(Color.red)
                 })
                     .padding(.bottom, 50.0)
@@ -105,7 +105,7 @@ struct SettingsView: View {
 
 struct CompletionsView: View {
     @StateObject fileprivate var settings = CompletionSettings()
-    @EnvironmentObject fileprivate var api: OPENAI
+    @EnvironmentObject fileprivate var api: OpenAI
     @State private var showingAlert = false
     
     func fetchContent() throws {
@@ -198,7 +198,7 @@ struct CompletionsView: View {
                 .disableAutocorrection(true)
                 .padding()
                 .modifier(InnerShadowModifier())
-                .padding([.leading, .bottom, .trailing])
+                .padding(.horizontal)
             HStack {
                 Spacer()
                 Button(action: {
@@ -409,7 +409,7 @@ fileprivate class CompletionSettings: ObservableObject {
         let reader = FilesManager()
         var rdata: Data
         do {
-            try rdata = reader.read(fileNamed: "OPENAI/completion_model_settings.json")
+            try rdata = reader.read(fileNamed: "OpenAI/completion_model_settings.json")
         } catch {
             print(error)
             self.content = "Once upon a time"
@@ -459,11 +459,11 @@ fileprivate class CompletionSettings: ObservableObject {
         let data = try! JSONEncoder().encode(wdata)
         
         do {
-            try writer.save(fileNamed: "OPENAI/completion_model_settings.json", data: data)
+            try writer.save(fileNamed: "OpenAI/completion_model_settings.json", data: data)
         } catch {
             do {
-                try writer.createDir(dirPath: "OPENAI")
-                try writer.save(fileNamed: "OPENAI/completion_model_settings.json", data: data)
+                try writer.createDir(dirPath: "OpenAI")
+                try writer.save(fileNamed: "OpenAI/completion_model_settings.json", data: data)
             } catch {
                 print(error)
             }
@@ -557,7 +557,7 @@ struct InnerShadowModifier: ViewModifier {
         content
             .overlay(
                 RoundedRectangle(cornerRadius: radius)
-                    .stroke(Color.white, lineWidth: 4)
+                    .stroke(Color.white, lineWidth: 3)
                     .shadow(color: Color.gray, radius: 3, x: 3, y: 3)
                     .clipShape(RoundedRectangle(cornerRadius: radius))
                     .shadow(color: Color.white, radius: 3, x: -3, y: -3)
@@ -567,9 +567,9 @@ struct InnerShadowModifier: ViewModifier {
         }
 }
 
-// MARK: - API key class
+// MARK: - API key
 
-fileprivate class OPENAI: ObservableObject {
+fileprivate class OpenAI: ObservableObject {
     @Published var KEY = ""
 
     init() {
@@ -577,7 +577,7 @@ fileprivate class OPENAI: ObservableObject {
         let reader = FilesManager()
         var rdata: Data
         do {
-            try rdata = reader.read(fileNamed: "OPENAI/.env")
+            try rdata = reader.read(fileNamed: "OpenAI/.env")
         } catch {
             print(error)
             return
@@ -594,11 +594,11 @@ fileprivate class OPENAI: ObservableObject {
         let data: Data? = self.KEY.data(using: .utf8)
 
         do {
-            try writer.save(fileNamed: "OPENAI/.env", data: data!)
+            try writer.save(fileNamed: "OpenAI/.env", data: data!)
         } catch {
             do {
-                try writer.createDir(dirPath: "OPENAI")
-                try writer.save(fileNamed: "OPENAI/.env", data: data!)
+                try writer.createDir(dirPath: "OpenAI")
+                try writer.save(fileNamed: "OpenAI/.env", data: data!)
             } catch {
                 print(error)
             }
@@ -712,6 +712,6 @@ extension View {
 
 struct OpenAIView_Previews: PreviewProvider {
     static var previews: some View {
-        SettingsView()
+        CompletionsView()
     }
 }

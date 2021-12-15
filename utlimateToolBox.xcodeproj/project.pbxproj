@@ -72,7 +72,7 @@
 				BFADE3D9276606D800E2602F /* ContentView.swift */,
 				BFADE3DB276606DA00E2602F /* Assets.xcassets */,
 				BFADE3DD276606DA00E2602F /* Preview Content */,
-				BFADE3EA2766348100E2602F /* openAI */,
+				BFADE3EA2766348100E2602F /* OpenAI */,
 			);
 			path = utlimateToolBox;
 			sourceTree = "<group>";
@@ -85,12 +85,12 @@
 			path = "Preview Content";
 			sourceTree = "<group>";
 		};
-		BFADE3EA2766348100E2602F /* openAI */ = {
+		BFADE3EA2766348100E2602F /* OpenAI */ = {
 			isa = PBXGroup;
 			children = (
 				BFADE3E527661C9700E2602F /* OpenAIView.swift */,
 			);
-			path = openAI;
+			path = OpenAI;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
