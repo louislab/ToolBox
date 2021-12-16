@@ -60,14 +60,31 @@ struct SettingsView: View {
                 .edgesIgnoringSafeArea(.all)
             VStack() {
                 Spacer()
-                VStack() {
-                    Text("OpenAI API Key")
-                        .padding([.leading, .top, .trailing])
-                    TextField("", text: $api.KEY)
-                        .padding([.leading, .bottom, .trailing])
-                        .multilineTextAlignment(.center)
-                        .textFieldStyle(.roundedBorder)
-                }
+                Text("OpenAI API Key")
+                    .padding([.leading, .top, .trailing])
+                TextField("", text: $api.KEY)
+                    .padding([.leading, .trailing])
+                    .padding(.bottom, 10)
+                    .multilineTextAlignment(.center)
+                    .textFieldStyle(.roundedBorder)
+                Button(action: {
+                    if api.KEY.isEmpty {
+                        hideKeyboard()
+                        showingAlert = true
+                        alertMsg = "API Key should not be empty."
+                    } else {
+                        api.config()
+                        hideKeyboard()
+                        showingAlert = true
+                        alertMsg = "API Key saved."
+                    }
+                }, label: {
+                    Text("Save")
+                        .font(.system(size: 15))
+                        .frame(width: 70, height: 40)
+                })
+                    .buttonStyle(OpenAIStyle())
+                    .padding([.leading, .bottom, .trailing])
                 Spacer()
                 Button(action: {
                     let r = FilesManager()
@@ -84,20 +101,17 @@ struct SettingsView: View {
                     Text("Erase all OpenAI settings")
                         .foregroundColor(Color.red)
                 })
-                    .padding(.bottom, 50.0)
+                    .padding(.bottom, 50)
             }
             .alert(isPresented: $showingAlert) {
                 Alert(title: Text(alertMsg), dismissButton: .default(Text("Dismiss")))
             }
         }
-        .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.inline)
-        .onDisappear(perform: {
-            api.config()
-        })
         .onTapGesture {
             hideKeyboard()
         }
+        .navigationTitle("Settings")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -107,15 +121,13 @@ struct CompletionsView: View {
     @StateObject fileprivate var settings = CompletionSettings()
     @EnvironmentObject fileprivate var api: OpenAI
     @State private var showingAlert = false
+    @State private var isHidden = true
     
-    func fetchContent() throws {
-        
-        enum Error: Swift.Error {
-            case noAPIKeyDetected
-        }
+    func fetchContent() {
         
         if api.KEY.isEmpty {
-            throw Error.noAPIKeyDetected
+            showingAlert = true
+            return
         }
         
         let headers: HTTPHeaders = [
@@ -157,6 +169,8 @@ struct CompletionsView: View {
             }
         }
         
+        isHidden = false
+        
         AF.request(
             "https://api.openai.com/v1/engines/\(settings.engine)/completions",
             method: .post,
@@ -166,11 +180,16 @@ struct CompletionsView: View {
         ).responseDecodable(of: ServerResponse.self) { response in
             switch response.result {
             case .success(let value):
+                isHidden = true
                 print("Response: \(String(describing: value.choices?.first?.text))")
-                let content = value.choices?.first?.text ?? ""
-                settings.content = "\(settings.prompt)\(content)"
+                if let content = value.choices?.first?.text {
+                    settings.content = "\(settings.prompt)\(content)"
+                } else {
+                    showingAlert = true
+                }
             case .failure(let error):
-                debugPrint("Error: \(error)")
+                isHidden = true
+                debugPrint(error)
             }
         }
         
@@ -182,67 +201,68 @@ struct CompletionsView: View {
                 Text("Playground")
                     .font(.title)
                     .fontWeight(.bold)
-                    .padding()
+                    .padding([.leading, .top, .trailing])
+                ProgressView()
+                    .isHidden(isHidden)
+                    .padding(.top)
                 Spacer()
                 NavigationLink(destination: CompletionsView_menu()
-                                .environmentObject(settings),
-                    label: {
+                                .environmentObject(settings), label: {
                     Image(systemName: "slider.horizontal.3")
-                        .aspectRatio(contentMode: .fit)
+                        .font(.system(size: 15))
+                        .frame(width: 35, height: 35)
                 })
-                    .padding()
-                    .buttonStyle(MonoStyle_s())
+                    .buttonStyle(OpenAIStyle())
+                    .padding([.trailing, .top])
             }
             TextEditor(text: $settings.content)
                 .font(Font.custom("RobotoMono-Light", size: 15))
                 .disableAutocorrection(true)
                 .padding()
-                .modifier(InnerShadowModifier())
-                .padding(.horizontal)
+                .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.gray, lineWidth: 1))
+                .padding([.leading, .trailing])
             HStack {
                 Spacer()
                 Button(action: {
                     if !settings.reverseCard.isEmpty {
                         settings.content = settings.reverseCard.removeLast()
                     }
-                },
-                       label: {
+                }, label: {
                     Image(systemName: "arrow.uturn.backward")
-                        .aspectRatio(contentMode: .fit)
+                        .font(.system(size: 15))
+                        .frame(width: 40, height: 40)
                 })
+                    .buttonStyle(OpenAIStyle())
                     .padding()
-                    .buttonStyle(MonoStyle())
                 Spacer()
                 Button(action: {
                     settings.reverseCard.append(settings.content)
                     settings.content = ""
-                },
-                       label: {
+                }, label: {
                     Text("Clear")
-                        .fontWeight(.bold)
+                        .font(.system(size: 15))
+                        .frame(width: 70, height: 40)
                 })
-                    .buttonStyle(MonoStyle())
+                    .buttonStyle(OpenAIStyle())
+                    .padding()
                 Spacer()
                 Button(action: {
                     settings.prompt = settings.content
                     settings.reverseCard.append(settings.content)
-                    do {
-                        try fetchContent()
-                    } catch {
-                        showingAlert = true
-                    }
+                    fetchContent()
                     hideKeyboard()
-                },
-                       label: {
+                }, label: {
                     Text("Generate")
-                        .fontWeight(.bold)
+                        .font(.system(size: 15))
+                        .frame(width: 90, height: 40)
                 })
-                    .buttonStyle(MonoStyle())
+                    .buttonStyle(OpenAIStyle())
+                    .padding()
                 Spacer()
             }
         }
         .alert(isPresented: $showingAlert) {
-            Alert(title: Text("API Key not found."), message: Text("Please config your API Key in settings"), dismissButton: .default(Text("Dismiss")))
+            Alert(title: Text("API Key not properly configured"), message: Text("Please edit your API Key in settings."), dismissButton: .default(Text("Dismiss")))
         }
         .navigationTitle("Completions")
         .navigationBarTitleDisplayMode(.inline)
@@ -271,7 +291,7 @@ struct CompletionsView_menu: View {
         ZStack {
             Color(UIColor.systemBackground)
                 .edgesIgnoringSafeArea(.all)
-            VStack(alignment: .center) {
+            VStack() {
                 VStack {
                     Text("Engine")
                         .padding([.top, .leading, .trailing])
@@ -287,7 +307,7 @@ struct CompletionsView_menu: View {
                         Text("Temperature")
                             .padding(.trailing)
                         TextField("", value: $settings.temperature, formatter: formatter)
-                            .frame(width: /*@START_MENU_TOKEN@*/60.0/*@END_MENU_TOKEN@*/, height: /*@START_MENU_TOKEN@*/20.0/*@END_MENU_TOKEN@*/)
+                            .frame(width: 60, height: 20)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .multilineTextAlignment(.trailing)
                             .disabled(true)
@@ -295,14 +315,14 @@ struct CompletionsView_menu: View {
                     .padding([.top, .leading, .trailing])
                     Slider(value: $settings.temperature, in: 0...1, step: 0.01)
                         .padding([.leading, .bottom, .trailing])
-                        .frame(width: 220.0, height: /*@START_MENU_TOKEN@*/50.0/*@END_MENU_TOKEN@*/)
+                        .frame(width: 220, height: 50)
                 }
                 VStack {
                     HStack {
                         Text("Response length")
                             .padding(.trailing)
                         TextField("", value: $settings.max_tokens, formatter: formatter)
-                            .frame(width: 60.0, height: /*@START_MENU_TOKEN@*/20.0/*@END_MENU_TOKEN@*/)
+                            .frame(width: 60, height: 20)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .multilineTextAlignment(.trailing)
                             .disabled(true)
@@ -310,16 +330,15 @@ struct CompletionsView_menu: View {
                     .padding([.top, .leading, .trailing])
                     Slider(value: settings.max_tokens_double, in: 1...2048, step: 1)
                         .padding([.leading, .bottom, .trailing])
-                        .frame(width: 220.0, height: /*@START_MENU_TOKEN@*/50.0/*@END_MENU_TOKEN@*/)
+                        .frame(width: 220, height: 50)
                 }
                 HStack {
                     Text("Stop sign")
                         .padding(.trailing)
                     TextField("", text: $settings.stop)
-                        .frame(width: 60.0, height: /*@START_MENU_TOKEN@*/20.0/*@END_MENU_TOKEN@*/)
+                        .frame(width: 60, height: 20)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .multilineTextAlignment(.center)
-                        .onSubmit {}
                         .submitLabel(.done)
                 }
                 .padding()
@@ -328,7 +347,7 @@ struct CompletionsView_menu: View {
                         Text("Top P")
                             .padding(.trailing)
                         TextField("", value: $settings.top_p, formatter: formatter)
-                            .frame(width: /*@START_MENU_TOKEN@*/60.0/*@END_MENU_TOKEN@*/, height: /*@START_MENU_TOKEN@*/20.0/*@END_MENU_TOKEN@*/)
+                            .frame(width: 60, height: 20)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .multilineTextAlignment(.trailing)
                             .disabled(true)
@@ -336,7 +355,7 @@ struct CompletionsView_menu: View {
                     .padding([.top, .leading, .trailing])
                     Slider(value: $settings.top_p, in: 0...1, step: 0.01)
                         .padding([.leading, .bottom, .trailing])
-                        .frame(width: 220.0, height: /*@START_MENU_TOKEN@*/50.0/*@END_MENU_TOKEN@*/)
+                        .frame(width: 220, height: 50)
                 }
                 Button(action: {
                     settings.content = "Once upon a time"
@@ -349,18 +368,18 @@ struct CompletionsView_menu: View {
                     settings.stream = false
                     settings.stop = "\\n"
                     settings.reverseCard = []
-                },
-                       label: {
+                }, label: {
                     Text("Reset")
+                        .foregroundColor(Color.red)
                 })
                     .padding()
             }
         }
-        .navigationTitle("Configuration")
-        .navigationBarTitleDisplayMode(.inline)
         .onTapGesture {
             hideKeyboard()
         }
+        .navigationTitle("Configuration")
+        .navigationBarTitleDisplayMode(.inline)
         .onDisappear(perform: {
             settings.saveSettings()
         })
@@ -514,59 +533,6 @@ struct CodexView: View {
     }
 }
 
-// MARK: - Button styles
-
-struct MonoStyle: ButtonStyle {
-
-    func makeBody(configuration: Self.Configuration) -> some View {
-        configuration.label
-            .padding()
-            .foregroundColor(.black)
-            .background(
-                        RoundedRectangle(cornerRadius: 25)
-                            .fill(Color.white)
-                            .shadow(color: Color.white, radius: 4, x: -4, y: -4)
-                            .shadow(color: Color.gray, radius: 4, x: 4, y: 4)
-            )
-            .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
-    }
-}
-
-struct MonoStyle_s: ButtonStyle {
-
-    func makeBody(configuration: Self.Configuration) -> some View {
-        configuration.label
-            .padding(10.0)
-            .foregroundColor(.black)
-            .background(
-                        RoundedRectangle(cornerRadius: 5)
-                            .fill(Color.white)
-                            .shadow(color: Color.white, radius: 2, x: -2, y: -2)
-                            .shadow(color: Color.gray, radius: 2, x: 2, y: 2)
-            )
-            .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
-    }
-}
-
-// MARK: - Inner shadows
-
-struct InnerShadowModifier: ViewModifier {
-    @State var radius: CGFloat = 10
-    
-    func body(content: Content) -> some View {
-        content
-            .overlay(
-                RoundedRectangle(cornerRadius: radius)
-                    .stroke(Color.white, lineWidth: 3)
-                    .shadow(color: Color.gray, radius: 3, x: 3, y: 3)
-                    .clipShape(RoundedRectangle(cornerRadius: radius))
-                    .shadow(color: Color.white, radius: 3, x: -3, y: -3)
-                    .clipShape(RoundedRectangle(cornerRadius: radius)
-                              )
-                )
-        }
-}
-
 // MARK: - API key
 
 fileprivate class OpenAI: ObservableObject {
@@ -698,13 +664,35 @@ class FilesManager {
     
 }
 
+// MARK: - Button style
+
+struct OpenAIStyle: ButtonStyle {
+ 
+    func makeBody(configuration: Self.Configuration) -> some View {
+        configuration.label
+            .foregroundColor(Color.white)
+            .background(configuration.isPressed ? Color("AIGreen_Pressed") : Color("AIGreen"))
+            .cornerRadius(5)
+    }
+}
+
 // MARK: - Extensions
 
-// option to dismiss the keyboard when user tapped specific area
+// option to dismiss the keyboard when user tapped outside the textfield
 extension View {
     func hideKeyboard() {
         let resign = #selector(UIResponder.resignFirstResponder)
         UIApplication.shared.sendAction(resign, to: nil, from: nil, for: nil)
+    }
+}
+
+extension View {
+    @ViewBuilder func isHidden(_ isHidden: Bool) -> some View {
+        if isHidden {
+            self.hidden()
+        } else {
+            self
+        }
     }
 }
 
