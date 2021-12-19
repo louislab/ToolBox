@@ -456,7 +456,7 @@ struct PresetsView: View {
             settings.top_p = 1.0
             settings.n = 1
             settings.stream = false
-            settings.stop = ["\n"]
+            settings.stop = ["###"]
             settings.presence_penalty = 0
             settings.frequency_penalty = 0
             settings.reverseCard = []

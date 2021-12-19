@@ -5,6 +5,21 @@
 //  Created by Louis Lee on 12/12/2021.
 //
 
+/**
+ * Update guide:
+ *
+ * For engines:
+ *  1. Update the list of engines in CompletionView_menu
+ *   - engines [String]
+ *
+ * For presets:
+ *  1. Update the preset list in PresetsView
+ *   - enum Presets
+ *  2. Append the preset values in PresetsView
+ *   - func build()
+ *  3. Insert the button into PresetsView, followed by hardcoded random presetStyles (shuffle technique)
+ */
+
 import SwiftUI
 
 struct ContentView: View {
