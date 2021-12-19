@@ -8,125 +8,23 @@
 import SwiftUI
 import Alamofire
 
-struct OpenAIView: View {
-    @StateObject fileprivate var api = OpenAI()
-    
-    var body: some View {
-        List {
-            NavigationLink(destination: CompletionsView().environmentObject(api),
-                label: {
-                Text("Completions")
-            })
-            NavigationLink(destination: SearchesView(),
-                label: {
-                Text("Searches")
-            })
-            NavigationLink(destination: ClassificationsView(),
-                label: {
-                Text("Classifications")
-            })
-            NavigationLink(destination: AnswersView(),
-                label: {
-                Text("Answers")
-            })
-            NavigationLink(destination: CodexView(),
-                label: {
-                Text("Codex")
-            })
-            NavigationLink(destination: ContentFilterView(),
-                label: {
-                Text("Content Filter")
-            })
-            NavigationLink(destination: SettingsView().environmentObject(api),
-                label: {
-                Text("Settings")
-            })
-        }
-        .navigationTitle("Open AI")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-// MARK: - Settings View
-
-struct SettingsView: View {
-    @State private var showingAlert = false
-    @State private var alertMsg = ""
-    @EnvironmentObject fileprivate var api: OpenAI
-    
-    var body: some View {
-        ZStack {
-            Color(UIColor.systemBackground)
-                .edgesIgnoringSafeArea(.all)
-            VStack() {
-                Spacer()
-                Text("OpenAI API Key")
-                    .padding([.leading, .top, .trailing])
-                TextField("", text: $api.KEY)
-                    .padding([.leading, .trailing])
-                    .padding(.bottom, 10)
-                    .multilineTextAlignment(.center)
-                    .textFieldStyle(.roundedBorder)
-                Button(action: {
-                    if api.KEY.isEmpty {
-                        hideKeyboard()
-                        showingAlert = true
-                        alertMsg = "API Key should not be empty."
-                    } else {
-                        api.config()
-                        hideKeyboard()
-                        showingAlert = true
-                        alertMsg = "API Key saved."
-                    }
-                }, label: {
-                    Text("Save")
-                        .font(.system(size: 15))
-                        .frame(width: 70, height: 40)
-                })
-                    .buttonStyle(OpenAIStyle())
-                    .padding([.leading, .bottom, .trailing])
-                Spacer()
-                Button(action: {
-                    let r = FilesManager()
-                    do {
-                        try r.remove(fileNamed: "OpenAI")
-                        showingAlert = true
-                        alertMsg = "Settings erased successfully."
-                    } catch {
-                        showingAlert = true
-                        alertMsg = "Settings is empty."
-                    }
-                    api.KEY = ""
-                }, label: {
-                    Text("Erase all OpenAI settings")
-                        .foregroundColor(Color.red)
-                })
-                    .padding(.bottom, 50)
-            }
-            .alert(isPresented: $showingAlert) {
-                Alert(title: Text(alertMsg), dismissButton: .default(Text("Dismiss")))
-            }
-        }
-        .onTapGesture {
-            hideKeyboard()
-        }
-        .navigationTitle("Settings")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
 // MARK: - Completion view
 
 struct CompletionsView: View {
-    @StateObject fileprivate var settings = CompletionSettings()
-    @EnvironmentObject fileprivate var api: OpenAI
+    @StateObject var settings = CompletionSettings()
+    @StateObject var api = OpenAI()
     @State private var showingAlert = false
+    @State private var savingAlert = false
     @State private var isHidden = true
+    @State private var showingPresets = false
+    @State var preset: Presets = .completion
+    @State var presetStyle: [LinearGradient] = []
+    @Binding var rootIsActive : Bool
     
     func fetchContent() {
         
         if api.KEY.isEmpty {
-            showingAlert = true
+            showingAlert.toggle()
             return
         }
         
@@ -143,7 +41,11 @@ struct CompletionsView: View {
             "n": settings.n,
             "stream": settings.stream,
             "logprobs": NSNull(),
-            "stop": "\(settings.stop)"
+            "echo": false,
+            "stop": settings.stop.isEmpty ? NSNull() : settings.stop,
+            "presence_penalty": settings.presence_penalty,
+            "frequency_penalty": settings.frequency_penalty,
+            "best_of": settings.best_of
         ]
         
         struct ServerResponse: Decodable {
@@ -185,7 +87,7 @@ struct CompletionsView: View {
                 if let content = value.choices?.first?.text {
                     settings.content = "\(settings.prompt)\(content)"
                 } else {
-                    showingAlert = true
+                    showingAlert.toggle()
                 }
             case .failure(let error):
                 isHidden = true
@@ -201,17 +103,45 @@ struct CompletionsView: View {
                 Text("Playground")
                     .font(.title)
                     .fontWeight(.bold)
-                    .padding([.leading, .top, .trailing])
+                    .padding([.leading, .top])
+                Spacer()
                 ProgressView()
                     .isHidden(isHidden)
                     .padding(.top)
                 Spacer()
-                NavigationLink(destination: CompletionsView_menu()
-                                .environmentObject(settings), label: {
+                Button(action: {
+                    hideKeyboard()
+                    settings.saveSettings()
+                    savingAlert.toggle()
+                }, label: {
+                    Text("Save")
+                        .font(.system(size: 15))
+                        .frame(width: 70, height: 35)
+                })
+                    .buttonStyle(OpenAIStyle())
+                    .padding(.top)
+                Spacer()
+                Button(action: {
+                    presetStyle.removeAll()
+                    for _ in 1...Presets.allCases.count {
+                        presetStyle.append(genGradient())
+                    }
+                    showingPresets.toggle()
+                }, label: {
+                    Text("Presets")
+                        .font(.system(size: 15))
+                        .frame(width: 75, height: 35)
+                })
+                    .buttonStyle(OpenAIStyle())
+                    .padding(.top)
+                Spacer()
+                NavigationLink(destination: CompletionsView_menu(shouldPopToRootView: self.$rootIsActive, preset: $preset, presetStyle: $presetStyle)
+                                .environmentObject(settings).environmentObject(api), label: {
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 15))
                         .frame(width: 35, height: 35)
                 })
+                    .isDetailLink(false)
                     .buttonStyle(OpenAIStyle())
                     .padding([.trailing, .top])
             }
@@ -261,21 +191,32 @@ struct CompletionsView: View {
                 Spacer()
             }
         }
+        .sheet(isPresented: $showingPresets) {
+            PresetsView(preset: $preset, presetStyle: $presetStyle).environmentObject(settings)
+                }
+        .alert("Settings Saved", isPresented: $savingAlert) {
+            Button("Dismiss", role: .cancel) {}
+        }
         .alert(isPresented: $showingAlert) {
-            Alert(title: Text("API Key not properly configured"), message: Text("Please edit your API Key in settings."), dismissButton: .default(Text("Dismiss")))
+            Alert(title: Text("API Key not properly configured"), message: Text("Please edit your API Key in settings"), dismissButton: .default(Text("Dismiss")))
         }
         .navigationTitle("Completions")
         .navigationBarTitleDisplayMode(.inline)
-        .onDisappear(perform: {
-            settings.saveSettings()
-        })
     }
 }
 
 // MARK: - Completion view (menu)
 
 struct CompletionsView_menu: View {
-    @EnvironmentObject fileprivate var settings: CompletionSettings
+    @EnvironmentObject var settings: CompletionSettings
+    @EnvironmentObject var api: OpenAI
+    @State private var showingAlert = false
+    @State private var confirmationDialog = false
+    @State private var alertMsg = ""
+    @Binding var shouldPopToRootView : Bool
+    @Binding var preset: Presets
+    @Binding var presetStyle: [LinearGradient]
+    
 
     let engines = ["davinci", "curie", "babbage", "ada", "davinci-instruct-beta-v3", "curie-instruct-beta-v2", "babbage-instruct-beta", "ada-instruct-beta", "davinci-codex", "cushman-codex"]
     
@@ -288,107 +229,163 @@ struct CompletionsView_menu: View {
         }()
 
     var body: some View {
-        ZStack {
-            Color(UIColor.systemBackground)
-                .edgesIgnoringSafeArea(.all)
-            VStack() {
-                VStack {
-                    Text("Engine")
-                        .padding([.top, .leading, .trailing])
-                    Picker("Pick an Engine", selection: $settings.engine) {
-                        ForEach(engines, id: \.self) {
-                            Text($0)
-                        }
+        List {
+            Section {
+                Picker("Pick an Engine", selection: $settings.engine) {
+                    ForEach(engines, id: \.self) {
+                        Text($0)
                     }
-                    .padding([.leading, .bottom, .trailing])
                 }
                 VStack {
                     HStack {
                         Text("Temperature")
-                            .padding(.trailing)
+                        Spacer()
                         TextField("", value: $settings.temperature, formatter: formatter)
-                            .frame(width: 60, height: 20)
+                            .frame(width: 60)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .multilineTextAlignment(.trailing)
                             .disabled(true)
                     }
-                    .padding([.top, .leading, .trailing])
                     Slider(value: $settings.temperature, in: 0...1, step: 0.01)
-                        .padding([.leading, .bottom, .trailing])
-                        .frame(width: 220, height: 50)
+                        .frame(width: UIScreen.main.bounds.size.width * 0.8)
                 }
                 VStack {
                     HStack {
                         Text("Response length")
-                            .padding(.trailing)
+                        Spacer()
                         TextField("", value: $settings.max_tokens, formatter: formatter)
-                            .frame(width: 60, height: 20)
+                            .frame(width: 60)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .multilineTextAlignment(.trailing)
                             .disabled(true)
                     }
-                    .padding([.top, .leading, .trailing])
                     Slider(value: settings.max_tokens_double, in: 1...2048, step: 1)
-                        .padding([.leading, .bottom, .trailing])
-                        .frame(width: 220, height: 50)
+                        .frame(width: UIScreen.main.bounds.size.width * 0.8)
+                }
+                VStack {
+                    HStack {
+                        Text("Top P")
+                        Spacer()
+                        TextField("", value: $settings.top_p, formatter: formatter)
+                            .frame(width: 60)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .multilineTextAlignment(.trailing)
+                            .disabled(true)
+                    }
+                    Slider(value: $settings.top_p, in: 0...1, step: 0.01)
+                        .frame(width: UIScreen.main.bounds.size.width * 0.8)
+                }
+                VStack {
+                    HStack {
+                        Text("Presence penalty")
+                        Spacer()
+                        TextField("", value: $settings.presence_penalty, formatter: formatter)
+                            .frame(width: 60)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .multilineTextAlignment(.trailing)
+                            .disabled(true)
+                    }
+                    Slider(value: $settings.presence_penalty, in: 0...2, step: 0.01)
+                        .frame(width: UIScreen.main.bounds.size.width * 0.8)
+                }
+                VStack {
+                    HStack {
+                        Text("Frequency penalty")
+                        Spacer()
+                        TextField("", value: $settings.frequency_penalty, formatter: formatter)
+                            .frame(width: 60)
+                            .textFieldStyle(RoundedBorderTextFieldStyle())
+                            .multilineTextAlignment(.trailing)
+                            .disabled(true)
+                    }
+                    Slider(value: $settings.frequency_penalty, in: 0...2, step: 0.01)
+                        .frame(width: UIScreen.main.bounds.size.width * 0.8)
                 }
                 HStack {
                     Text("Stop sign")
-                        .padding(.trailing)
-                    TextField("", text: $settings.stop)
-                        .frame(width: 60, height: 20)
+                    Spacer()
+                    TextField("", text: settings.stopString)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .multilineTextAlignment(.center)
                         .submitLabel(.done)
                 }
-                .padding()
-                VStack {
-                    HStack {
-                        Text("Top P")
-                            .padding(.trailing)
-                        TextField("", value: $settings.top_p, formatter: formatter)
-                            .frame(width: 60, height: 20)
-                            .textFieldStyle(RoundedBorderTextFieldStyle())
-                            .multilineTextAlignment(.trailing)
-                            .disabled(true)
-                    }
-                    .padding([.top, .leading, .trailing])
-                    Slider(value: $settings.top_p, in: 0...1, step: 0.01)
-                        .padding([.leading, .bottom, .trailing])
-                        .frame(width: 220, height: 50)
-                }
+            }
+            Section {
+                NavigationLink(destination: OpenAIDeepView().environmentObject(api), label: {
+                    Text("Configure API Key")
+                })
+                    .isDetailLink(false)
                 Button(action: {
-                    settings.content = "Once upon a time"
-                    settings.engine = "davinci"
-                    settings.prompt = ""
-                    settings.max_tokens = 20
-                    settings.temperature = 1.0
-                    settings.top_p = 1.0
-                    settings.n = 1
-                    settings.stream = false
-                    settings.stop = "\\n"
-                    settings.reverseCard = []
+                    PresetsView(preset: $preset, presetStyle: $presetStyle, settings: _settings).build(preset: preset)
                 }, label: {
-                    Text("Reset")
+                    Text("Reset parameters")
+                        .foregroundColor(Color.accentColor)
+                })
+                Button(action: {
+                    confirmationDialog.toggle()
+                }, label: {
+                    Text("Erase all OpenAI saved settings")
                         .foregroundColor(Color.red)
                 })
-                    .padding()
             }
         }
-        .onTapGesture {
-            hideKeyboard()
+        .listStyle(InsetGroupedListStyle())
+        .alert(isPresented: $confirmationDialog) {
+            Alert(
+                title: Text("Are you sure you want to erase all settings?"),
+                message: Text("There is no undo"),
+                primaryButton: .destructive(Text("Delete")) {
+                    let r = FilesManager()
+                    do {
+                        try r.remove(fileNamed: "OpenAI")
+                    } catch {
+                        print(error)
+                    }
+                    showingAlert.toggle()
+                    alertMsg = "Settings erased successfully"
+                },
+                secondaryButton: .cancel()
+            )
+        }
+        .alert(alertMsg, isPresented: $showingAlert) {
+            if alertMsg == "Settings erased successfully" {
+                Button("Dismiss", role: .cancel) {
+                    self.shouldPopToRootView = false
+                }
+            } else {
+                Button("Dismiss", role: .cancel) {}
+            }
         }
         .navigationTitle("Configuration")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - API Key setting view
+
+struct OpenAIDeepView: View {
+    @EnvironmentObject var api: OpenAI
+
+    var body: some View {
+        VStack {
+            Text("OpenAI API Key")
+                .padding(.top, 30)
+                .padding([.leading, .trailing])
+            SecureField("Paste your API Key here", text: $api.KEY)
+                .padding([.leading, .trailing])
+                .multilineTextAlignment(.center)
+                .textFieldStyle(.roundedBorder)
+                .submitLabel(.done)
+        }
         .onDisappear(perform: {
-            settings.saveSettings()
+            api.config()
         })
     }
 }
 
 // MARK: - Completion settings class
 
-fileprivate class CompletionSettings: ObservableObject {
+class CompletionSettings: ObservableObject {
     @Published var content: String
     @Published var engine: String
     @Published var prompt: String
@@ -397,7 +394,10 @@ fileprivate class CompletionSettings: ObservableObject {
     @Published var top_p: Double
     @Published var n: Int
     @Published var stream: Bool
-    @Published var stop: String
+    @Published var stop: [String]
+    @Published var presence_penalty: Double
+    @Published var frequency_penalty: Double
+    @Published var best_of: Int
     @Published var reverseCard: [String] // a stack for undo movement
     
     var max_tokens_double: Binding<Double>{
@@ -407,6 +407,14 @@ fileprivate class CompletionSettings: ObservableObject {
         }, set: {
             //rounds the Double to an Int
             self.max_tokens = Int($0)
+        })
+    }
+
+    var stopString: Binding<String>{
+        Binding<String>(get: {
+            return self.stop.joined(separator: ", ").replacingOccurrences(of: "\n", with: "\\n").replacingOccurrences(of: "\\t", with: "\t").replacingOccurrences(of: "\\r", with: "\r")
+        }, set: {
+            self.stop = $0.replacingOccurrences(of: "\\n", with: "\n").replacingOccurrences(of: "\\t", with: "\t").replacingOccurrences(of: "\\r", with: "\r").components(separatedBy: ", ")
         })
     }
     
@@ -420,7 +428,10 @@ fileprivate class CompletionSettings: ObservableObject {
         var top_p: Double
         var n: Int
         var stream: Bool
-        var stop: String
+        var stop: [String]
+        var presence_penalty: Double
+        var frequency_penalty: Double
+        var best_of: Int
     }
     
     init() {
@@ -439,7 +450,10 @@ fileprivate class CompletionSettings: ObservableObject {
             self.top_p = 1.0
             self.n = 1
             self.stream = false
-            self.stop = "\\n"
+            self.stop = ["\n"]
+            self.presence_penalty = 0
+            self.frequency_penalty = 0
+            self.best_of = 1
             self.reverseCard = []
             print("Data loaded from template.")
             return
@@ -456,6 +470,9 @@ fileprivate class CompletionSettings: ObservableObject {
         self.n = data.n
         self.stream = data.stream
         self.stop = data.stop
+        self.presence_penalty = data.presence_penalty
+        self.frequency_penalty = data.frequency_penalty
+        self.best_of = data.best_of
         self.reverseCard = []
         
     }
@@ -472,7 +489,10 @@ fileprivate class CompletionSettings: ObservableObject {
             top_p: self.top_p,
             n: self.n,
             stream: self.stream,
-            stop: self.stop
+            stop: self.stop,
+            presence_penalty: self.presence_penalty,
+            frequency_penalty: self.frequency_penalty,
+            best_of: self.best_of
         )
         
         let data = try! JSONEncoder().encode(wdata)
@@ -491,51 +511,9 @@ fileprivate class CompletionSettings: ObservableObject {
     }
 }
 
-// MARK: - Searches view
-
-struct SearchesView: View {
-    var body: some View {
-        Text("Placeholder")
-        .navigationTitle("Searches")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-struct ClassificationsView: View {
-    var body: some View {
-        Text("Placeholder")
-        .navigationTitle("Classifications")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-struct AnswersView: View {
-    var body: some View {
-        Text("Placeholder")
-        .navigationTitle("Answers")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-struct ContentFilterView: View {
-    var body: some View {
-        Text("Placeholder")
-        .navigationTitle("Content Filter")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-struct CodexView: View {
-    var body: some View {
-        Text("Placeholder")
-        .navigationTitle("Codex")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
 // MARK: - API key
 
-fileprivate class OpenAI: ObservableObject {
+class OpenAI: ObservableObject {
     @Published var KEY = ""
 
     init() {
@@ -664,14 +642,14 @@ class FilesManager {
     
 }
 
-// MARK: - Button style
+// MARK: - Button styles
 
 struct OpenAIStyle: ButtonStyle {
- 
+
     func makeBody(configuration: Self.Configuration) -> some View {
         configuration.label
             .foregroundColor(Color.white)
-            .background(configuration.isPressed ? Color("AIGreen_Pressed") : Color("AIGreen"))
+            .background(configuration.isPressed ? Color(red: 60 / 255, green: 125 / 255, blue: 102 / 255) : Color(red: 74 / 255, green: 160 / 255, blue: 129 / 255))
             .cornerRadius(5)
     }
 }
@@ -698,8 +676,8 @@ extension View {
 
 // MARK: - Preview section
 
-struct OpenAIView_Previews: PreviewProvider {
+struct CompletionsView_Previews: PreviewProvider {
     static var previews: some View {
-        CompletionsView()
+        ContentView()
     }
 }
