@@ -18,7 +18,7 @@ struct CompletionsView: View {
     @State private var isHidden = true
     @State private var showingPresets = false
     @State var preset: Presets = .completion
-    @State var presetStyle: [LinearGradient] = []
+    @State var presetStyle: [Color] = []
     @Binding var rootIsActive : Bool
     
     func fetchContent() {
@@ -124,7 +124,7 @@ struct CompletionsView: View {
                 Button(action: {
                     presetStyle.removeAll()
                     for _ in 1...Presets.allCases.count {
-                        presetStyle.append(genGradient())
+                        presetStyle.append(genColor())
                     }
                     showingPresets.toggle()
                 }, label: {
@@ -215,7 +215,7 @@ struct CompletionsView_menu: View {
     @State private var alertMsg = ""
     @Binding var shouldPopToRootView : Bool
     @Binding var preset: Presets
-    @Binding var presetStyle: [LinearGradient]
+    @Binding var presetStyle: [Color]
     
 
     let engines = ["davinci", "curie", "babbage", "ada", "davinci-instruct-beta-v3", "curie-instruct-beta-v2", "babbage-instruct-beta", "ada-instruct-beta", "davinci-codex", "cushman-codex"]
@@ -316,7 +316,9 @@ struct CompletionsView_menu: View {
                 })
                     .isDetailLink(false)
                 Button(action: {
+                    let content = settings.content
                     PresetsView(preset: $preset, presetStyle: $presetStyle, settings: _settings).build(preset: preset)
+                    settings.content = content
                 }, label: {
                     Text("Reset parameters")
                         .foregroundColor(Color.accentColor)

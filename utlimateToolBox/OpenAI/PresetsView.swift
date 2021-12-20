@@ -60,50 +60,53 @@ enum Presets: CaseIterable {
     case interviewQuestions
 }
 
-enum PresetStyles {
-    case red
-    case blue
-    case orange
-    case purple
-    case brown
-}
-
-func gradient(presetStyles: PresetStyles) -> LinearGradient {
-    switch presetStyles {
-    case .red:
-        return LinearGradient(gradient: Gradient(colors: [Color(red: 0.65, green: 0.19, blue: 0.25), Color(red: 0.92, green: 0.27, blue: 0.35)]), startPoint: .bottomTrailing, endPoint: .topLeading)
-    case .blue:
-        return LinearGradient(gradient: Gradient(colors: [Color(red: 0.22, green: 0.15, blue: 0.59), Color(red: 0.34, green: 0.25, blue: 0.83)]), startPoint: .bottomTrailing, endPoint: .topLeading)
-    case .orange:
-        return LinearGradient(gradient: Gradient(colors: [Color(red: 0.90, green: 0.42, blue: 0.18), Color(red: 0.94, green: 0.57, blue: 0.21)]), startPoint: .bottomTrailing, endPoint: .topLeading)
-    case .purple:
-        return LinearGradient(gradient: Gradient(colors: [Color(red: 0.55, green: 0.12, blue: 0.52), Color(red: 0.82, green: 0.38, blue: 0.71)]), startPoint: .bottomTrailing, endPoint: .topLeading)
-    case .brown:
-        return LinearGradient(gradient: Gradient(colors: [Color(red: 0.35, green: 0.25, blue: 0.22), Color(red: 0.53, green: 0.44, blue: 0.40)]), startPoint: .bottomTrailing, endPoint: .topLeading)
+func genColor() -> Color {
+    let randomInt = Int.random(in: 1...3)
+    switch randomInt {
+    case 1:
+        return Color(red: 0.905, green: 0.969, blue: 1.0, opacity: 1.0) // blue
+    case 2:
+        return Color(red: 0.875, green: 1, blue: 0.93, opacity: 1.0) // green
+    case 3:
+        return Color(red: 0.945, green: 0.939, blue: 1.0, opacity: 1.0) // pink
+    default:
+        return genColor()
     }
 }
 
-func genGradient() -> LinearGradient {
-    let randomInt = Int.random(in: 1...5)
-    switch randomInt {
-    case 1:
-        return gradient(presetStyles: .red)
-    case 2:
-        return gradient(presetStyles: .blue)
-    case 3:
-        return gradient(presetStyles: .orange)
-    case 4:
-        return gradient(presetStyles: .purple)
-    case 5:
-        return gradient(presetStyles: .brown)
-    default:
-        return gradient(presetStyles: .red)
+struct NeumorphicButtonStyle: ButtonStyle {
+    var col: Color
+    
+    func makeBody(configuration: Self.Configuration) -> some View {
+        configuration.label
+            .foregroundColor(.primary)
+            .animation(.spring(), value: 0)
+            .frame(width: 150, height: 150)
+            .background(
+                ZStack {
+                    Color(red: 0.811, green: 0.904, blue: 0.989, opacity: 1.0)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .foregroundColor(Color.white)
+                        .blur(radius: 4)
+                        .offset(x: -8, y: -8)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(
+                            LinearGradient(gradient: Gradient(colors: [col, Color.white]),  startPoint: .topLeading,  endPoint: .bottomTrailing)
+                        )
+                        .padding(2)
+                        .blur(radius: 2)
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .shadow(color: col, radius: configuration.isPressed ? 15: 20, x: configuration.isPressed ? 25: 20, y: configuration.isPressed ? 25: 20)
+            .shadow(color: Color(red: 0.992, green: 0.992, blue: 0.992, opacity: 1.0), radius: configuration.isPressed ? 15: 20, x: configuration.isPressed ? -25: -20, y: configuration.isPressed ? -25: -20)
+            .scaleEffect(configuration.isPressed ? 0.95: 1)
     }
 }
 
 struct PresetsView: View {
     @Binding var preset: Presets
-    @Binding var presetStyle: [LinearGradient]
+    @Binding var presetStyle: [Color]
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var settings: CompletionSettings
 
@@ -819,8 +822,7 @@ struct PresetsView: View {
                 dismiss()
             }, label: {
                 Text("Dismiss")
-                    .foregroundColor(Color.white)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 20, weight: .semibold, design: .rounded))
             })
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .padding()
@@ -836,14 +838,11 @@ struct PresetsView: View {
                                 Image(systemName: "paragraphsign")
                                     .font(.system(size: 40))
                                 Text("Completion")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[0])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[0]))
                         Spacer()
                         Button(action: {
                             build(preset: .chat)
@@ -853,14 +852,11 @@ struct PresetsView: View {
                                 Image(systemName: "ellipsis.bubble.fill")
                                     .font(.system(size: 40))
                                 Text("Chat")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[1])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[1]))
                         Spacer()
                     }
                     HStack {
@@ -873,14 +869,11 @@ struct PresetsView: View {
                                 Image(systemName: "questionmark.circle.fill")
                                     .font(.system(size: 40))
                                 Text("Q&A")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[2])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[2]))
                         Spacer()
                         Button(action: {
                             build(preset: .grammarCorrection)
@@ -890,13 +883,10 @@ struct PresetsView: View {
                                 Image(systemName: "graduationcap.fill")
                                     .font(.system(size: 40))
                                 Text("Grammar correction")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[3])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[3]))
                         Spacer()
                     }
                     HStack {
@@ -908,15 +898,12 @@ struct PresetsView: View {
                             VStack {
                                 Image(systemName: "forward.fill")
                                     .font(.system(size: 40))
-                                Text("Summarize for a 2nd grader")
-                                    .fontWeight(.semibold)
+                                Text("Summarize for 2nd grader")
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[4])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[4]))
                         Spacer()
                         Button(action: {
                             build(preset: .naturalLanguageToOpenAIAPI)
@@ -926,14 +913,11 @@ struct PresetsView: View {
                                 Image(systemName: "text.bubble.fill")
                                     .font(.system(size: 40))
                                 Text("Natural language to OpenAI API")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 2)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[5])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[5]))
                         Spacer()
                     }
                     HStack {
@@ -946,14 +930,11 @@ struct PresetsView: View {
                                 Image(systemName: "terminal.fill")
                                     .font(.system(size: 40))
                                 Text("Text to command")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[6])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[6]))
                         Spacer()
                         Button(action: {
                             build(preset: .englishToFrench)
@@ -963,14 +944,11 @@ struct PresetsView: View {
                                 Image(systemName: "globe")
                                     .font(.system(size: 40))
                                 Text("English to French")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[7])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[7]))
                         Spacer()
                     }
                     HStack {
@@ -983,14 +961,11 @@ struct PresetsView: View {
                                 Image(systemName: "dollarsign.circle.fill")
                                     .font(.system(size: 40))
                                 Text("Natural language to Stripe API")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[8])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[8]))
                         Spacer()
                         Button(action: {
                             build(preset: .sqlTranslate)
@@ -1000,14 +975,11 @@ struct PresetsView: View {
                                 Image(systemName: "number")
                                     .font(.system(size: 40))
                                 Text("SQL translate")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[9])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[9]))
                         Spacer()
                     }
                     HStack {
@@ -1020,14 +992,11 @@ struct PresetsView: View {
                                 Image(systemName: "tablecells")
                                     .font(.system(size: 40))
                                 Text("Parse unstructured data")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[10])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[10]))
                         Spacer()
                         Button(action: {
                             build(preset: .classification)
@@ -1037,14 +1006,11 @@ struct PresetsView: View {
                                 Image(systemName: "tag.fill")
                                     .font(.system(size: 40))
                                 Text("Classification")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[11])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[11]))
                         Spacer()
                     }
                     HStack {
@@ -1057,14 +1023,11 @@ struct PresetsView: View {
                                 Image(systemName: "chevron.left.forwardslash.chevron.right")
                                     .font(.system(size: 40))
                                 Text("Python to natural language")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[12])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[12]))
                         Spacer()
                         Button(action: {
                             build(preset: .movieToEmoji)
@@ -1074,14 +1037,11 @@ struct PresetsView: View {
                                 Image(systemName: "crown.fill")
                                     .font(.system(size: 40))
                                 Text("Movie to Emoji")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[13])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[13]))
                         Spacer()
                     }
                     HStack {
@@ -1094,14 +1054,11 @@ struct PresetsView: View {
                                 Image(systemName: "clock.fill")
                                     .font(.system(size: 40))
                                 Text("Calculate Time Complexity")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[14])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[14]))
                         Spacer()
                         Button(action: {
                             build(preset: .translateProgrammingLanguages)
@@ -1111,13 +1068,10 @@ struct PresetsView: View {
                                 Image(systemName: "character.cursor.ibeam")
                                     .font(.system(size: 40))
                                 Text("Translate programming languages")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[15])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[15]))
                         Spacer()
                     }
                     HStack {
@@ -1130,14 +1084,11 @@ struct PresetsView: View {
                                 Image(systemName: "scale.3d")
                                     .font(.system(size: 40))
                                 Text("Advanced tweet classifier")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[16])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[16]))
                         Spacer()
                         Button(action: {
                             build(preset: .explainCode)
@@ -1147,14 +1098,11 @@ struct PresetsView: View {
                                 Image(systemName: "rectangle.inset.filled.and.person.filled")
                                     .font(.system(size: 40))
                                 Text("Explain code")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[17])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[17]))
                         Spacer()
                     }
                 }
@@ -1169,14 +1117,11 @@ struct PresetsView: View {
                                 Image(systemName: "key.fill")
                                     .font(.system(size: 40))
                                 Text("Keywords")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[18])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[18]))
                         Spacer()
                         Button(action: {
                             build(preset: .factualAnswering)
@@ -1186,14 +1131,11 @@ struct PresetsView: View {
                                 Image(systemName: "quote.bubble.fill")
                                     .font(.system(size: 40))
                                 Text("Factual answering")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[19])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[19]))
                         Spacer()
                     }
                     HStack {
@@ -1205,15 +1147,11 @@ struct PresetsView: View {
                             VStack {
                                 Image(systemName: "wallet.pass.fill")
                                     .font(.system(size: 40))
-                                Text("Ad from product description")
-                                    .fontWeight(.semibold)
-                                    .padding(.top, 10)
+                                Text("Create Ad from product description")
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[20])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[20]))
                         Spacer()
                         Button(action: {
                             build(preset: .productNameGenerator)
@@ -1223,14 +1161,11 @@ struct PresetsView: View {
                                 Image(systemName: "lightbulb.fill")
                                     .font(.system(size: 40))
                                 Text("Product name generator")
-                                    .fontWeight(.semibold)
-                                    .padding(.top, 10)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[21])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[21]))
                         Spacer()
                     }
                     HStack {
@@ -1243,14 +1178,11 @@ struct PresetsView: View {
                                 Image(systemName: "cup.and.saucer.fill")
                                     .font(.system(size: 40))
                                 Text("TL;DR summarization")
-                                    .fontWeight(.semibold)
-                                    .padding(.top, 10)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[22])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[22]))
                         Spacer()
                         Button(action: {
                             build(preset: .pythonBugFixer)
@@ -1260,14 +1192,11 @@ struct PresetsView: View {
                                 Image(systemName: "ladybug.fill")
                                     .font(.system(size: 40))
                                 Text("Python bug fixer")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 2)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[23])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[23]))
                         Spacer()
                     }
                     HStack {
@@ -1280,14 +1209,11 @@ struct PresetsView: View {
                                 Image(systemName: "rectangle.split.3x3")
                                     .font(.system(size: 40))
                                 Text("Spreadsheet generator")
-                                    .fontWeight(.semibold)
-                                    .padding(.top, 10)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[24])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[24]))
                         Spacer()
                         Button(action: {
                             build(preset: .javaScriptHelperChatbot)
@@ -1297,14 +1223,11 @@ struct PresetsView: View {
                                 Image(systemName: "cube.transparent.fill")
                                     .font(.system(size: 40))
                                 Text("JavaScript helper chatbot")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[25])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[25]))
                         Spacer()
                     }
                     HStack {
@@ -1317,14 +1240,11 @@ struct PresetsView: View {
                                 Image(systemName: "text.book.closed.fill")
                                     .font(.system(size: 40))
                                 Text("ML/AI language model tutor")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[26])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[26]))
                         Spacer()
                         Button(action: {
                             build(preset: .scienceFictionBookListMaker)
@@ -1334,14 +1254,11 @@ struct PresetsView: View {
                                 Image(systemName: "books.vertical.fill")
                                     .font(.system(size: 40))
                                 Text("Science fiction book list maker")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[27])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[27]))
                         Spacer()
                     }
                     HStack {
@@ -1354,14 +1271,11 @@ struct PresetsView: View {
                                 Image(systemName: "archivebox.fill")
                                     .font(.system(size: 40))
                                 Text("Tweet classifier")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[28])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[28]))
                         Spacer()
                         Button(action: {
                             build(preset: .airportCodeExtractor)
@@ -1371,14 +1285,10 @@ struct PresetsView: View {
                                 Image(systemName: "tag.fill")
                                     .font(.system(size: 40))
                                 Text("Airport code extractor")
-                                    .fontWeight(.semibold)
-                                    .padding(.top, 5)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[29])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[29]))
                         Spacer()
                     }
                     HStack {
@@ -1391,14 +1301,11 @@ struct PresetsView: View {
                                 Image(systemName: "terminal.fill")
                                     .font(.system(size: 40))
                                 Text("SQL request")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[30])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[30]))
                         Spacer()
                         Button(action: {
                             build(preset: .extractContactInformation)
@@ -1408,14 +1315,11 @@ struct PresetsView: View {
                                 Image(systemName: "person.fill")
                                     .font(.system(size: 40))
                                 Text("Extract contact information")
-                                    .fontWeight(.semibold)
-                                    .padding(.top, 10)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[31])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[31]))
                         Spacer()
                     }
                     HStack {
@@ -1428,14 +1332,11 @@ struct PresetsView: View {
                                 Image(systemName: "curlybraces.square.fill")
                                     .font(.system(size: 40))
                                 Text("JavaScript to Python")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[32])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[32]))
                         Spacer()
                         Button(action: {
                             build(preset: .friendChat)
@@ -1445,14 +1346,11 @@ struct PresetsView: View {
                                 Image(systemName: "person.2.fill")
                                     .font(.system(size: 40))
                                 Text("Friend chat")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[33])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[33]))
                         Spacer()
                     }
                     HStack {
@@ -1465,14 +1363,11 @@ struct PresetsView: View {
                                 Image(systemName: "face.smiling.fill")
                                     .font(.system(size: 40))
                                 Text("Mood to color")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[34])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[34]))
                         Spacer()
                         Button(action: {
                             build(preset: .writeAPythonDocstring)
@@ -1482,14 +1377,11 @@ struct PresetsView: View {
                                 Image(systemName: "doc.fill")
                                     .font(.system(size: 40))
                                 Text("Write a Python docstring")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[35])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[35]))
                         Spacer()
                     }
                 }
@@ -1504,14 +1396,11 @@ struct PresetsView: View {
                                 Image(systemName: "lightbulb.fill")
                                     .font(.system(size: 40))
                                 Text("Analogy maker")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[36])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[36]))
                         Spacer()
                         Button(action: {
                             build(preset: .javaScriptOneLineFunction)
@@ -1521,14 +1410,11 @@ struct PresetsView: View {
                                 Image(systemName: "terminal.fill")
                                     .font(.system(size: 40))
                                 Text("JavaScript one line function")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[37])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[37]))
                         Spacer()
                     }
                     HStack {
@@ -1541,14 +1427,11 @@ struct PresetsView: View {
                                 Image(systemName: "applepencil")
                                     .font(.system(size: 40))
                                 Text("Micro horror story creator")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[38])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[38]))
                         Spacer()
                         Button(action: {
                             build(preset: .thirdPersonConverter)
@@ -1558,14 +1441,11 @@ struct PresetsView: View {
                                 Image(systemName: "captions.bubble.fill")
                                     .font(.system(size: 40))
                                 Text("Third-person converter")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[39])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[39]))
                         Spacer()
                     }
                     HStack {
@@ -1578,14 +1458,11 @@ struct PresetsView: View {
                                 Image(systemName: "ellipsis.bubble.fill")
                                     .font(.system(size: 40))
                                 Text("Notes to summary")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[40])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[40]))
                         Spacer()
                         Button(action: {
                             build(preset: .VRFitnessIdeaGenerator)
@@ -1595,14 +1472,11 @@ struct PresetsView: View {
                                 Image(systemName: "sportscourt.fill")
                                     .font(.system(size: 40))
                                 Text("VR fitness idea generator")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 2)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[41])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[41]))
                         Spacer()
                     }
                     HStack {
@@ -1615,14 +1489,11 @@ struct PresetsView: View {
                                 Image(systemName: "star.fill")
                                     .font(.system(size: 40))
                                 Text("ESRB rating")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[42])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[42]))
                         Spacer()
                         Button(action: {
                             build(preset: .essayOutline)
@@ -1632,14 +1503,11 @@ struct PresetsView: View {
                                 Image(systemName: "doc.append.fill")
                                     .font(.system(size: 40))
                                 Text("Essay outline")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[43])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[43]))
                         Spacer()
                     }
                     HStack {
@@ -1652,14 +1520,11 @@ struct PresetsView: View {
                                 Image(systemName: "takeoutbag.and.cup.and.straw.fill")
                                     .font(.system(size: 40))
                                 Text("Recipe generator")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[44])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[44]))
                         Spacer()
                         Button(action: {
                             build(preset: .marvTheSarcasticChatbot)
@@ -1669,14 +1534,11 @@ struct PresetsView: View {
                                 Image(systemName: "character.bubble.fill")
                                     .font(.system(size: 40))
                                 Text("Marv the sarcastic chat bot")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[45])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[45]))
                         Spacer()
                     }
                     HStack {
@@ -1689,14 +1551,11 @@ struct PresetsView: View {
                                 Image(systemName: "mappin.circle.fill")
                                     .font(.system(size: 40))
                                 Text("Turn by turn directions")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[46])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[46]))
                         Spacer()
                         Button(action: {
                             build(preset: .restaurantReviewCreator)
@@ -1706,14 +1565,11 @@ struct PresetsView: View {
                                 Image(systemName: "star.fill")
                                     .font(.system(size: 40))
                                 Text("Restaurant review creator")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[47])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[47]))
                         Spacer()
                     }
                     HStack {
@@ -1726,14 +1582,11 @@ struct PresetsView: View {
                                 Image(systemName: "note.text")
                                     .font(.system(size: 40))
                                 Text("Create study notes")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 5)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[48])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[48]))
                         Spacer()
                         Button(action: {
                             build(preset: .interviewQuestions)
@@ -1743,21 +1596,18 @@ struct PresetsView: View {
                                 Image(systemName: "briefcase.fill")
                                     .font(.system(size: 40))
                                 Text("Interview questions")
-                                    .fontWeight(.semibold)
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .padding(.top, 10)
                             }
                         })
-                            .frame(width: 150, height: 150, alignment: .center)
-                            .foregroundColor(Color.white)
-                            .background (presetStyle[49])
-                            .cornerRadius(25)
+                            .buttonStyle(NeumorphicButtonStyle(col: presetStyle[49]))
                         Spacer()
                     }
                 }
             }
             Spacer()
         }
-        .background(LinearGradient(gradient: Gradient(colors: [Color(red: 0.23, green: 0.35, blue: 0.29), Color(red: 0.19, green: 0.65, blue: 0.40)]), startPoint: .bottom, endPoint: .top))
+        .background(Color.white)
     }
 }
 
