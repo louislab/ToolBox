@@ -86,6 +86,9 @@ struct CompletionsView: View {
                 print("Response: \(String(describing: value.choices?.first?.text))")
                 if let content = value.choices?.first?.text {
                     settings.content = "\(settings.prompt)\(content)"
+                    if settings.content != settings.reverseCard.last {
+                        settings.reverseCard.append(settings.content)
+                    }
                 } else {
                     showingAlert.toggle()
                 }
@@ -154,8 +157,12 @@ struct CompletionsView: View {
             HStack {
                 Spacer()
                 Button(action: {
-                    if !settings.reverseCard.isEmpty {
-                        settings.content = settings.reverseCard.removeLast()
+                    if settings.reverseCard.count == 1 {
+                        settings.content = settings.reverseCard.last!
+                    } else {
+                        if settings.content == settings.reverseCard.last { settings.reverseCard.removeLast() }
+                        if settings.reverseCard.count == 1 { settings.content = settings.reverseCard.last! }
+                        else { settings.content = settings.reverseCard.removeLast() }
                     }
                 }, label: {
                     Image(systemName: "arrow.uturn.backward")
@@ -166,8 +173,11 @@ struct CompletionsView: View {
                     .padding()
                 Spacer()
                 Button(action: {
-                    settings.reverseCard.append(settings.content)
+                    if settings.content != settings.reverseCard.last {
+                        settings.reverseCard.append(settings.content)
+                    }
                     settings.content = ""
+                    settings.reverseCard.append(settings.content)
                 }, label: {
                     Text("Clear")
                         .font(.system(size: 15))
@@ -178,7 +188,9 @@ struct CompletionsView: View {
                 Spacer()
                 Button(action: {
                     settings.prompt = settings.content
-                    settings.reverseCard.append(settings.content)
+                    if settings.content != settings.reverseCard.last {
+                        settings.reverseCard.append(settings.content)
+                    }
                     fetchContent()
                     hideKeyboard()
                 }, label: {
@@ -457,6 +469,7 @@ class CompletionSettings: ObservableObject {
             self.frequency_penalty = 0
             self.best_of = 1
             self.reverseCard = []
+            self.reverseCard.append(self.content)
             print("Data loaded from template.")
             return
         }
@@ -476,6 +489,7 @@ class CompletionSettings: ObservableObject {
         self.frequency_penalty = data.frequency_penalty
         self.best_of = data.best_of
         self.reverseCard = []
+        self.reverseCard.append(self.content)
         
     }
     
